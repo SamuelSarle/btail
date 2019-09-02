@@ -5,6 +5,12 @@ use strict;
 use warnings;
 use diagnostics;
 
-while(<>) {
-	print;
+my @f = map { s/[^\w\.\-\/]//; $_ } @ARGV;
+
+foreach my $file (@f){
+	open IN, "<", "$file" or warn "Couldn't open file!: $file\n";
+	while(my $l = <IN>) {
+		print $l;
+	}
+	close IN;
 }
