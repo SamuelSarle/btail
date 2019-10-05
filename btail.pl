@@ -7,10 +7,37 @@ use warnings;
 #use diagnostics;
 use Fcntl qw(SEEK_SET SEEK_CUR SEEK_END);
 use Carp qw(carp croak confess);
+use Getopt::Long;
+use Time::Local;
 
 use v5.28;
 
 use feature qw(:all);
+
+my %options = (
+	'lines'     => 0,
+	'from_date' => '',
+	'to_date'   => '',
+	'days_ago'  => 0,
+	'days'      => 0,
+	'quiet'     => 1,
+);
+
+GetOptions(
+	'lines=i'     => \$options{'lines'},
+	'from_date=s' => \$options{'from_date'},
+	'to_date=s'   => \$options{'to_date'},
+	'days_ago=i'  => \$options{'days_ago'},
+	'days=i'      => \$options{'days'},
+	'verbose!'    => \$options{'quiet'},
+) or croak "Error in command line arguments";
+
+{
+	use Data::Dumper;
+	print Dumper \%options;
+	parse_date($options{'from_date'});
+	exit;
+}
 
 local $, = "\n"; # TMP list seperator
 local $| = 1; #autoflush
@@ -18,7 +45,7 @@ local $| = 1; #autoflush
 my @f = map { s/[^\w\.\-\/]//g; $_ } @ARGV;
 
 foreach my $file (@f) {
-	open my $fh, "<", "$file" or carp "Couldn't open $file: $!\n";
+	open my $fh, "<", "$file" or carp "Couldn't open $file: $!" and next;
 	binmode $fh, ':encoding(UTF-8)';
 	my $print_from = bsearch_point($fh, 999734);
 
@@ -28,10 +55,10 @@ foreach my $file (@f) {
 }
 
 sub bsearch_point {
-	my $fh = shift;
+	my $fh    = shift;
 	my $point = shift;
 	my $begin = shift || 0;
-	my $end = shift || 0;
+	my $end   = shift || 0;
 
 	my ($middle, $line, $value);
 
@@ -93,6 +120,61 @@ sub print_file {
 	my $line;
 
 	print $line while($line = <$fh>);
+}
+
+sub parse_date {
+	my $string = shift || return 0;
+	my $epoch;
+
+	my %months = qw(Jan 0 Feb 1 Mar 2 Apr 3 May 4 Jun 5 Jul 6 Aug 7 Sep 8 Oct 9 Nov 10 Dec 11);
+
+	#my ($year, $mon, $day, $hour, $min, $sec) = (0,0,0,0,0,0,0);
+	($string =~
+		m{
+			^
+			(?<year>\d{4,})
+			[ / : \\ ]?
+			(?<mon>[0-9]|1[0-2])
+			[ / : \\ ]?
+			(?<day>[0-2][0-9]|3[01])
+			(?:
+			[ / : \\ ]?
+			(?<hour>[01][0-9]|2[0-3])
+			[ / : \\ ]?
+			(?<min>[0-5][0-9])
+			[ / : \\ ]?
+			(?<sec>[0-5][0-9])
+			)?
+			$
+		}xx
+	or $string =~
+		m{
+			^
+			(?:[A-Z][a-z]{2})       #Mon, Tue, Wed..
+			\s
+			(?<mname>[A-Z][a-z]{2}) #Jan, Feb, Mar..
+			\s
+			[\s0]?(?<mon>[1-9]|[1-2][0-9]|3[01])\s #month day
+			((?<hour>[01][0-9]|2[0-3])
+			:(?<min>[0-5][0-9])
+			:(?<sec>[0-5][0-9]))
+			\s
+			(?<year>\d{4,})
+			$
+		}xx
+	);
+	$+{mon} = $months{$+{mname}} if (defined $+{mname});
+
+	$epoch = timelocal($+{sec}||0,
+						$+{min}||0,
+						$+{hour}||0,
+						$+{day}||0,
+						($+{mon}>0?$+{mon}-1:0),
+						$+{year}||0
+					);
+	say $epoch;
+
+	return $epoch;
 }
 
 __END__
