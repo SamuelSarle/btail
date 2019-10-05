@@ -4,13 +4,10 @@ package main;
 
 use strict;
 use warnings;
-#use diagnostics;
 use Fcntl qw(SEEK_SET SEEK_CUR SEEK_END);
 use Carp qw(carp croak confess);
 use Getopt::Long;
 use Time::Local;
-
-use Test::More;
 
 use feature qw(:all);
 
@@ -146,16 +143,16 @@ sub parse_date {
 		m{
 			^
 			(?<year>\d{4,})
-			[ / : \\ ]?
+			[ / : \\ \s ]?
 			(?<mon>0[1-9]|1[0-2])
-			[ / : \\ ]?
+			[ / : \\ \s ]?
 			(?<day>[0-2][0-9]|3[01])
 			(?:
-			[ / : \\ ]?
+			[ / : \\ \s ]?
 			(?<hour>[01][0-9]|2[0-3])
-			[ / : \\ ]?
+			[ / : \\ \s ]?
 			(?<min>[0-5][0-9])
-			[ / : \\ ]?
+			[ / : \\ \s ]?
 			(?<sec>[0-5][0-9])
 			)?
 			$
@@ -201,15 +198,23 @@ sub usage {
 }
 
 sub tests {
-	#confess "tests() not implemented";
 	test_parse_date();
+	say "Tests pass.";
 }
 
 sub test_parse_date {
-	for (0..25) {
+	for (0..250) {
 		my $epoch = int rand 1e9;
-		my $string = scalar localtime $epoch;
-		($epoch == parse_date($string))
+
+		my ($sec, $min, $hour, $day, $mon, $year, undef, undef, undef) = (localtime $epoch);
+
+		my $string_one = sprintf("%04d/%02d/%02d %02d:%02d:%02d",
+						$year+1900, $mon+1, $day, $hour, $min, $sec);
+
+		my $string_two = scalar localtime $epoch;
+
+		($epoch == parse_date($string_one)
+		and ($epoch == parse_date($string_two)))
 			or confess "Fix your parse_date";
 	}
 }
