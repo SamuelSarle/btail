@@ -6,46 +6,50 @@ use strict;
 use warnings;
 #use diagnostics;
 use Fcntl qw(SEEK_SET SEEK_CUR SEEK_END);
+use Carp qw(carp croak confess);
 
 use v5.28;
 
 use feature qw(:all);
 
-local $, = "\n";
-local $| = 1;
+local $, = "\n"; # TMP list seperator
+local $| = 1; #autoflush
 
 my @f = map { s/[^\w\.\-\/]//g; $_ } @ARGV;
 
 foreach my $file (@f) {
-	bsearch_point(999734, $file);
+	open my $fh, "<", "$file" or carp "Couldn't open $file: $!\n";
+	binmode $fh, ':encoding(UTF-8)';
+	my $print_from = bsearch_point($fh, 999734);
+
+	print_file($fh, $print_from);
+
+	close $fh;
 }
 
 sub bsearch_point {
+	my $fh = shift;
 	my $point = shift;
-	my $file = shift;
 	my $begin = shift || 0;
 	my $end = shift || 0;
 
 	my ($middle, $line, $value);
 
-	open my $IN, "<", "$file" or warn "Couldn't open file!: $file\n";
-	binmode $IN, ':encoding(UTF-8)';
+	seek $fh, 0, SEEK_SET;
+	$begin = tell $fh;
 
-	die "Value not in range!: $file\n" if not value_in_range($point, $IN);
+	seek $fh, 0, SEEK_END;
+	$end = tell $fh;
 
-	seek $IN, 0, SEEK_SET;
-	$begin = tell $IN;
-
-	seek $IN, 0, SEEK_END;
-	$end = tell $IN;
-
-	seek $IN, 0, SEEK_SET;
-	my $count = 1;
+	seek $fh, 0, SEEK_SET;
 	while($begin <= $end) {
 		$middle = int(($begin + $end) / 2);
-		seek $IN, $middle, SEEK_SET;
-		$line = read_line($IN);
-		$value = int $line || 0;
+
+		seek $fh, $middle, SEEK_SET;
+		$line = read_line($fh);
+
+		$value = int $line or confess "Couldn't read line";
+
 		if ($value < $point) {
 			$begin = $middle + 1;
 		} elsif ($value > $point) {
@@ -53,39 +57,42 @@ sub bsearch_point {
 		} else {
 			last;
 		}
-		sleep 0.1;
-		say $count++;
-	}
-	<$IN>;
-	print $_ while (<$IN>);
 
-	close $IN;
+		($end <= 0)
+			and carp "Hit beginning of file"
+			and ($middle = $end)
+			and last;
+	}
+
+	($middle < 0) #shouldn't happen
+		and $middle = 0;
+
+	return $middle;
 }
 
 sub read_line {
 	my $fh = shift;
 
-	<$fh>; #need to fix cursor to begin of line # TODO go backwards ?
+	# TODO do we need to go backwards ?
+	<$fh>; #fix cursor
 	my $line = <$fh>;
 
 	chomp $line;
 	return $line;
 }
 
-sub value_in_range {
-	my $point = shift;
-	my $file_h = shift;
-	my ($first, $last);
+sub print_file {
+	my $fh = shift|| return;
+	my $print_from = shift || 0;
 
-	$first = int <$file_h>;
-	while(<$file_h>) { # TODO remove requirement to read whole file
-		$last = int $_;
-	}
-	return ($point >= $first && $point <= $last)
-}
+	seek $fh, $print_from, SEEK_SET;
 
-sub print_file { # TODO
-	my (@files) = @_ || die;
+	($print_from == 0)
+		or <$fh>; #fix cursor
+
+	my $line;
+
+	print $line while($line = <$fh>);
 }
 
 __END__
