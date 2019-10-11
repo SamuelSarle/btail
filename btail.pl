@@ -49,29 +49,9 @@ sub main {
 		open my $fh, "<", "$file" or carp "Couldn't open $file: $!" and next;
 		binmode $fh, ':encoding(UTF-8)';
 
-		my %range;
+		my $range = get_range($fh, \%options);
 
-		if ($options{from_date}) {
-			$range{from} = bsearch_point($fh, parse_date($options{from_date}));
-		} elsif ($options{days_ago}) {
-			$range{from} = bsearch_point($fh, days_ago($options{days_ago}));
-		}
-
-		(!defined $range{from} || $range{from} < 0)
-			and croak "Start of range invalid";
-
-		if ($options{to_date}) {
-			$range{to} = bsearch_point($fh, parse_date($options{to_date}));
-		} elsif ($options{days}) {
-			$range{to} = bsearch_point($fh, days_frwd($options{days}, parse_date($options{from_date})), $range{from});
-		} elsif ($options{lines}) {
-			$range{lines} = $options{lines}
-		}
-
-		(defined $range{to} && $range{to} < $range{from})
-			and croak "End of range invalid";
-
-		print_file($fh, \%range);
+		print_file($fh, $range);
 
 		close $fh;
 	}
@@ -156,6 +136,35 @@ sub print_file {
 			$count++;
 		}
 	}
+}
+
+sub get_range {
+	my $fh      = shift || confess "No filehandle";
+	my $options = shift || confess "No options";
+
+	my %range;
+
+	if ($$options{from_date}) {
+		$range{from} = bsearch_point($fh, parse_date($$options{from_date}));
+	} elsif ($$options{days_ago}) {
+		$range{from} = bsearch_point($fh, days_ago($$options{days_ago}));
+	}
+
+	(!defined $range{from} || $range{from} < 0)
+		and croak "Start of range invalid";
+
+	if ($$options{to_date}) {
+		$range{to} = bsearch_point($fh, parse_date($$options{to_date}));
+	} elsif ($$options{days}) {
+		$range{to} = bsearch_point($fh, days_frwd($$options{days}, parse_date($$options{from_date})), $range{from});
+	} elsif ($$options{lines}) {
+		$range{lines} = $$options{lines}
+	}
+
+	(defined $range{to} && $range{to} < $range{from})
+		and croak "End of range invalid";
+
+	return \%range;
 }
 
 sub parse_date {
