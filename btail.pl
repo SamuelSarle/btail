@@ -4,14 +4,13 @@ package main;
 
 use strict;
 use warnings;
+use feature qw(:all);
+
 use Fcntl qw(SEEK_SET SEEK_CUR SEEK_END);
 use Carp qw(carp croak confess);
 use Getopt::Long;
 use Time::Local;
 
-use feature qw(:all);
-
-local $, = "\n"; # TMP list seperator
 local $| = 1;    # autoflush
 
 my %options = (
@@ -36,30 +35,44 @@ GetOptions(
 	'test'        => \$options{'test'},
 ) or croak "Error in command line arguments";
 
-0 and do {
-	use Data::Dumper;
-	print Dumper \%options;
-	parse_date($options{'from_date'});
-	parse_date("Wed Jan 19 02:11:34 2000");
-	exit;
-};
-
 main(@ARGV);
 
 sub main {
+	my @files = @_;
+
 	(usage() and exit) if $options{'help'};
 	(tests() and exit) if $options{'test'};
-
-	my @files = @_;
 
 	my @f = map { s/[^\w\.\-\/]//g; $_ } @files;
 
 	foreach my $file (@f) {
 		open my $fh, "<", "$file" or carp "Couldn't open $file: $!" and next;
 		binmode $fh, ':encoding(UTF-8)';
-		my $print_from = bsearch_point($fh, 999734);
 
-		print_file($fh, $print_from);
+		my %range;
+
+		if ($options{from_date}) {
+			$range{from} = bsearch_point($fh, parse_date($options{from_date}));
+		} elsif ($options{days_ago}) {
+			$range{from} = bsearch_point($fh, days_ago($options{days_ago}));
+		}
+
+		(!defined $range{from} || $range{from} < 0)
+			and croak "Start of range invalid";
+
+		if ($options{to_date}) {
+			$range{to} = bsearch_point($fh, parse_date($options{to_date}));
+		} elsif ($options{days}) {
+			$range{to} = bsearch_point($fh, days_frwd($options{days}, parse_date($options{from_date})), $range{from});
+		} elsif ($options{lines}) {
+			$range{lines} = $options{lines}
+		}
+
+		(defined $range{to} && $range{to} < $range{from})
+			and croak "End of range invalid";
+
+		say "Start of print:";
+		print_file($fh, \%range);
 
 		close $fh;
 	}
@@ -68,25 +81,29 @@ sub main {
 sub bsearch_point {
 	my $fh    = shift;
 	my $point = shift;
-	my $begin = shift || 0;
-	my $end   = shift || 0;
+	my $begin = shift;
+	my $end   = shift;
 
 	my ($middle, $line, $value);
 
-	seek $fh, 0, SEEK_SET;
-	$begin = tell $fh;
+	(defined $begin)
+		or ( seek $fh, 0, SEEK_SET
+			and $begin = tell $fh);
 
-	seek $fh, 0, SEEK_END;
-	$end = tell $fh;
+	(defined $end)
+		or ( seek $fh, 0, SEEK_END
+			and $end = tell $fh);
 
-	seek $fh, 0, SEEK_SET;
+	seek $fh, $begin, SEEK_SET;
+
+	my $offset = 10;
+
 	while($begin <= $end) {
 		$middle = int(($begin + $end) / 2);
 
-		seek $fh, $middle, SEEK_SET;
-		$line = read_line($fh);
+		seek $fh, ($middle-$offset), SEEK_SET;
 
-		$value = int $line or confess "Couldn't parse line";
+		$value = parse_date(read_line($fh)) || confess "Couldn't parse line";
 
 		if ($value < $point) {
 			$begin = $middle + 1;
@@ -121,16 +138,25 @@ sub read_line {
 
 sub print_file {
 	my $fh = shift|| return;
-	my $print_from = shift || 0;
+	my $range = shift || confess "No range struct";
 
-	seek $fh, $print_from, SEEK_SET;
+	seek $fh, $$range{from}, SEEK_SET;
 
-	($print_from == 0)
+	($$range{from} == 0)
 		or <$fh>; #fix cursor
 
 	my $line;
+	my $count = 0;
+	while($line = <$fh>) {
+		print $line;
 
-	print $line while($line = <$fh>);
+		if ($$range{to}) {
+			last if (tell($fh) > $$range{to});
+		} elsif ($$range{lines}) {
+			last if $count >= $$range{lines};
+			$count++;
+		}
+	}
 }
 
 sub parse_date {
@@ -193,6 +219,18 @@ sub parse_date {
 	return $epoch;
 }
 
+sub days_back {
+	my $d = shift || 0;
+	my $p = shift || time();
+	return ($p - ($d*24*60*60));
+}
+
+sub days_frwd {
+	my $d = shift || 0;
+	my $p = shift || 0;
+	return ($p + ($d*24*60*60));
+}
+
 sub usage {
 	confess "usage() not implemented";
 }
@@ -220,38 +258,3 @@ sub test_parse_date {
 }
 
 __END__
-
-999713
-999719
-999721
-999725
-999734
-999735
-999737
-999749
-999755
-999764
-999775
-999801
-999805
-999815
-999816
-999826
-999830
-999833
-999840
-999846
-999849
-999871
-999889
-999891
-999892
-999902
-999914
-999928
-999945
-999946
-999971
-999986
-999995
-
