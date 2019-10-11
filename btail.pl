@@ -71,7 +71,6 @@ sub main {
 		(defined $range{to} && $range{to} < $range{from})
 			and croak "End of range invalid";
 
-		say "Start of print:";
 		print_file($fh, \%range);
 
 		close $fh;
