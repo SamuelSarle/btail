@@ -40,8 +40,8 @@ main(@ARGV);
 sub main {
 	my @files = @_;
 
-	(usage() and exit) if $options{'help'};
-	(tests() and exit) if $options{'test'};
+	(_usage() and exit) if $options{'help'};
+	(_tests() and exit) if $options{'test'};
 
 	my @f = map { s/[^\w\.\-\/]//g; $_ } @files;
 
@@ -51,7 +51,19 @@ sub main {
 
 		my $range = get_range($fh, \%options);
 
-		print_file($fh, $range);
+		###
+		#
+		# Either make an iterator like this:
+			my $it = make_btail_iterator($fh, $range);
+			my $line;
+			print $line while($line = $it->());
+		#
+		###
+		#
+		# Or just print file to STDOUT like this:
+			#print_file($fh, $range);
+		#
+		###
 
 		close $fh;
 	}
@@ -66,16 +78,16 @@ sub bsearch_point {
 	my ($middle, $line, $value);
 
 	(defined $begin)
-		or ( seek $fh, 0, SEEK_SET
+		or (seek $fh, 0, SEEK_SET
 			and $begin = tell $fh);
 
 	(defined $end)
-		or ( seek $fh, 0, SEEK_END
+		or (seek $fh, 0, SEEK_END
 			and $end = tell $fh);
 
 	seek $fh, $begin, SEEK_SET;
 
-	my $offset = 10;
+	my $offset = 10; #this seems to help align correctly, not sure why
 
 	while($begin <= $end) {
 		$middle = int(($begin + $end) / 2);
@@ -107,7 +119,6 @@ sub bsearch_point {
 sub read_line {
 	my $fh = shift;
 
-	# TODO do we need to go backwards ?
 	<$fh>; #fix cursor
 	my $line = <$fh>;
 
@@ -116,7 +127,7 @@ sub read_line {
 }
 
 sub print_file {
-	my $fh = shift|| return;
+	my $fh    = shift || confess "No filehandle";
 	my $range = shift || confess "No range struct";
 
 	seek $fh, $$range{from}, SEEK_SET;
@@ -135,6 +146,27 @@ sub print_file {
 			last if $count >= $$range{lines};
 			$count++;
 		}
+	}
+}
+
+sub make_btail_iterator {
+	my $fh    = shift || confess "No filehandle";
+	my $range = shift || confess "No range struct";
+
+	seek $fh, $$range{from}, SEEK_SET;
+
+	($$range{from} == 0)
+		or <$fh>; #fix cursor
+
+	my $count = 0;
+
+	return sub {
+		((defined $$range{to} && tell($fh) > $$range{to}) || (defined $$range{lines} && $count++ >= $$range{lines}))
+			and return undef;
+
+		my $line = <$fh>;
+
+		return $line;
 	}
 }
 
@@ -239,17 +271,18 @@ sub days_frwd {
 	return ($p + ($d*24*60*60));
 }
 
-sub usage {
+sub _usage {
 	confess "usage() not implemented";
+	#TODO
 }
 
-sub tests {
-	test_parse_date();
-	test_days_back_frwd();
+sub _tests {
+	_test_parse_date();
+	_test_days_back_frwd();
 	say "Tests pass.";
 }
 
-sub test_parse_date {
+sub _test_parse_date {
 	for (0..50) {
 		my $epoch = int rand 1e9;
 
@@ -267,7 +300,7 @@ sub test_parse_date {
 	}
 }
 
-sub test_days_back_frwd {
+sub _test_days_back_frwd {
 	my ($now, $last, $days, $new);
 	$last = $now = time();
 	for (0..50) {
