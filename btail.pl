@@ -236,11 +236,12 @@ sub usage {
 
 sub tests {
 	test_parse_date();
+	test_days_back_frwd();
 	say "Tests pass.";
 }
 
 sub test_parse_date {
-	for (0..250) {
+	for (0..50) {
 		my $epoch = int rand 1e9;
 
 		my ($sec, $min, $hour, $day, $mon, $year, undef, undef, undef) = (localtime $epoch);
@@ -250,10 +251,29 @@ sub test_parse_date {
 
 		my $string_two = scalar localtime $epoch;
 
-		($epoch == parse_date($string_one)
-		and ($epoch == parse_date($string_two)))
-			or confess "Fix your parse_date";
+		for ($string_one, $string_two) {
+			($epoch == parse_date($_))
+				or confess "Error in parse_date; $epoch, $_";
+		}
 	}
+}
+
+sub test_days_back_frwd {
+	my ($now, $last, $days, $new);
+	$last = $now = time();
+	for (0..50) {
+		$days = int rand 1e5;
+
+		my $back = days_back($days, $now);
+		my $frwd = days_frwd($days, $back);
+
+		($back == ($now-$days*24*60*60) && $frwd == $now)
+			or confess "Error in days_back, days_frwd; $now, $back, $frwd";
+	}
+
+	((days_back(0, $now) == $now)
+		and (days_frwd(0, $now) == $now))
+		or confess "Error in days_back, days_frwd; zero days doesn't equal today";
 }
 
 __END__
