@@ -211,16 +211,34 @@ sub parse_date {
 		m{
 			^
 			(?<year>\d{4,})
-			[ / : \\ \s ]?
+			[ / : \\ \s ]
 			(?<mon>0[1-9]|1[0-2])
-			[ / : \\ \s ]?
+			[ / : \\ \s ]
 			(?<day>[0-2][0-9]|3[01])
 			(?:
-			[ / : \\ \s ]?
+			[ / : \\ \s ]
 			(?<hour>[01][0-9]|2[0-3])
-			[ / : \\ \s ]?
+			[ / : \\ \s ]
 			(?<min>[0-5][0-9])
-			[ / : \\ \s ]?
+			[ / : \\ \s ]
+			(?<sec>[0-5][0-9])
+			)?
+			$
+		}xx
+	or $string =~
+		m{
+			^
+			(?<day>[0-2][0-9]|3[01])
+			[ / : \\ \s ]
+			(?<mon>0[1-9]|1[0-2])
+			[ / : \\ \s ]
+			(?<year>\d{4,})
+			(?:
+			[ / : \\ \s ]
+			(?<hour>[01][0-9]|2[0-3])
+			[ / : \\ \s ]
+			(?<min>[0-5][0-9])
+			[ / : \\ \s ]
 			(?<sec>[0-5][0-9])
 			)?
 			$
@@ -290,12 +308,16 @@ sub _test_parse_date {
 
 		my ($sec, $min, $hour, $day, $mon, $year, undef, undef, undef) = (localtime $epoch);
 
-		my $string_one = sprintf("%04d/%02d/%02d %02d:%02d:%02d",
+		my $string_one = scalar localtime $epoch;
+
+		my $string_two = sprintf("%04d/%02d/%02d %02d:%02d:%02d",
 						$year+1900, $mon+1, $day, $hour, $min, $sec);
 
-		my $string_two = scalar localtime $epoch;
+		my $string_three = sprintf("%02d/%02d/%04d %02d:%02d:%02d",
+						$day, $mon+1, $year+1900, $hour, $min, $sec);
 
-		for ($string_one, $string_two) {
+
+		for ($string_one, $string_two, $string_three) {
 			($epoch == parse_date($_))
 				or confess "Error in parse_date; $epoch, $_";
 		}
