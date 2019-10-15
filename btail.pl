@@ -43,7 +43,7 @@ sub main {
 	(_usage() and exit) if $options{'help'};
 	(_tests() and exit) if $options{'test'};
 
-	my @f = map { s/[^\w\.\-\/]//g; $_ } @files;
+	my @f = grep { m/[\w\.\-\/]/ } @files;
 
 	foreach my $file (@f) {
 		open my $fh, "<", "$file" or carp "Couldn't open $file: $!" and next;
