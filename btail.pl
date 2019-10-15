@@ -189,7 +189,9 @@ sub get_range {
 		$range{to} = bsearch_point($fh, parse_date($$options{to_date}));
 	} elsif ($$options{days}) {
 		$range{to} = bsearch_point($fh, days_frwd($$options{days}, parse_date($$options{from_date})), $range{from});
-	} elsif ($$options{lines}) {
+	}
+
+	if ($$options{lines}) {
 		$range{lines} = $$options{lines}
 	}
 
