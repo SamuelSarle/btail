@@ -7,7 +7,7 @@ use warnings;
 use feature qw(:all);
 
 use Fcntl qw(SEEK_SET SEEK_CUR SEEK_END);
-use Carp qw(carp croak confess);
+use Carp qw(croak confess);
 use Getopt::Long;
 use Time::Local;
 
@@ -46,21 +46,20 @@ sub main {
 	my @f = grep { m/[\w\.\-\/]/ } @files;
 
 	foreach my $file (@f) {
-		open my $fh, "<", "$file" or my_carp("Couldn't open $file: $!") and next;
+		open my $fh, "<", "$file" or croak "Couldn't open $file: $!";
 		binmode $fh, ':encoding(UTF-8)';
-
-		my $range = get_range($fh, \%options);
 
 		###
 		#
 		# Either make an iterator like this:
-			my $it = make_btail_iterator($fh, $range);
+			my $it = make_btail_iterator($fh, \%options);
 			my $line;
 			print $line while($line = $it->());
 		#
 		###
 		#
 		# Or just print file to STDOUT like this:
+			#my $range = get_range($fh, \%options);
 			#print_file($fh, $range);
 		#
 		###
@@ -105,7 +104,6 @@ sub bsearch_point {
 		}
 
 		($end <= 0)
-			and my_carp("Hit beginning of file")
 			and ($middle = $end)
 			and last;
 	}
@@ -150,8 +148,10 @@ sub print_file {
 }
 
 sub make_btail_iterator {
-	my $fh    = shift || confess "No filehandle";
-	my $range = shift || confess "No range struct";
+	my $fh      = shift || croak "No filehandle";
+	my $options = shift || croak "No options struct";
+
+	my $range = get_range($fh, \%options);
 
 	seek $fh, $$range{from}, SEEK_SET;
 
@@ -310,12 +310,6 @@ Other:
 --help      Print this message
 --test      Run tests
 EOF
-}
-
-sub my_carp {
-	my $m = shift || '';
-	($options{verbose}
-		and carp "$m")
 }
 
 sub _tests {
