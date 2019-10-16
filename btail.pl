@@ -19,7 +19,7 @@ my %options = (
 	'to_date'   => '',
 	'days_ago'  => 0,
 	'days'      => 0,
-	'quiet'     => 1,
+	'verbose'   => 0,
 	'help'      => 0,
 	'test'      => 0,
 );
@@ -30,7 +30,7 @@ GetOptions(
 	'to_date=s'   => \$options{'to_date'},
 	'days_ago=i'  => \$options{'days_ago'},
 	'days=i'      => \$options{'days'},
-	'verbose!'    => \$options{'quiet'},
+	'verbose'     => \$options{'verbose'},
 	'help'        => \$options{'help'},
 	'test'        => \$options{'test'},
 ) or croak "Error in command line arguments";
@@ -46,7 +46,7 @@ sub main {
 	my @f = grep { m/[\w\.\-\/]/ } @files;
 
 	foreach my $file (@f) {
-		open my $fh, "<", "$file" or carp "Couldn't open $file: $!" and next;
+		open my $fh, "<", "$file" or my_carp("Couldn't open $file: $!") and next;
 		binmode $fh, ':encoding(UTF-8)';
 
 		my $range = get_range($fh, \%options);
@@ -105,7 +105,7 @@ sub bsearch_point {
 		}
 
 		($end <= 0)
-			and carp "Hit beginning of file"
+			and my_carp("Hit beginning of file")
 			and ($middle = $end)
 			and last;
 	}
@@ -292,8 +292,30 @@ sub days_frwd {
 }
 
 sub _usage {
-	confess "usage() not implemented";
-	#TODO
+	say <<EOF;
+usage: btail [--from_date | --days_ago] [--to_date | --days] [file ...]
+
+Start point for printing:
+--from_date Define start as a date string
+--days_ago  Define start as n days ago from today
+
+End point for printing:
+--to_date   Define end of print as a date string
+--days      Days forward from start of print
+
+--lines     Print maximum of n lines
+
+Other:
+--verbose   More verbosity
+--help      Print this message
+--test      Run tests
+EOF
+}
+
+sub my_carp {
+	my $m = shift || '';
+	($options{verbose}
+		and carp "$m")
 }
 
 sub _tests {
