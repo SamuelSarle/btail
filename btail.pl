@@ -107,14 +107,17 @@ sub make_btail_iterator {
 	my $count = 0;
 
 	return sub {
-		((defined $$range{to} && tell($fh) > $$range{to}) || (defined $$range{lines} && $count++ >= $$range{lines}))
-			and close $fh
-			and return undef;
-
-		my $line = <$fh>;
-
-		return $line if defined $line;
-		close $fh;
+		if ((defined $$range{to}
+				&& tell($fh) > $$range{to})
+				|| (defined $$range{lines}
+				&& $count++ >= $$range{lines})) {
+			close $fh;
+		} elsif (fileno $fh) {
+			my $line = <$fh>;
+			return $line if defined $line;
+			close $fh;
+		}
+		return undef;
 	}
 }
 
