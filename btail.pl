@@ -54,7 +54,7 @@ sub bsearch_point {
 	my $begin = shift;
 	my $end   = shift;
 
-	my ($middle, $line, $value);
+	my ($middle, $value);
 
 	(defined $begin)
 		or (seek $fh, 0, SEEK_SET
@@ -64,34 +64,20 @@ sub bsearch_point {
 		or (seek $fh, 0, SEEK_END
 			and $end = tell $fh);
 
-	seek $fh, $begin, SEEK_SET;
+	$middle = int(($begin + $end) / 2);
 
 	my $offset = 10; #this seems to help align correctly, not sure why
+	seek $fh, ($middle-$offset), SEEK_SET;
 
-	while($begin <= $end) {
-		$middle = int(($begin + $end) / 2);
+	$value = parse_date(read_line($fh)) || confess "Couldn't parse line";
 
-		seek $fh, ($middle-$offset), SEEK_SET;
-
-		$value = parse_date(read_line($fh)) || confess "Couldn't parse line";
-
-		if ($value < $point) {
-			$begin = $middle + 1;
-		} elsif ($value > $point) {
-			$end = $middle - 1;
-		} else {
-			last;
-		}
-
-		($end <= 0)
-			and ($middle = $end)
-			and last;
+	if ($begin >= $end || $value == $point) {
+		return $middle;
+	} elsif ($value < $point) {
+		return bsearch_point($fh, $point, $middle+1, $end);
+	} elsif ($value > $point) {
+		return bsearch_point($fh, $point, $begin, $middle-1);
 	}
-
-	($middle < 0) #shouldn't happen
-		and $middle = 0;
-
-	return $middle;
 }
 
 sub read_line {
@@ -173,9 +159,9 @@ sub parse_date {
 		m{
 			^
 			(?<year>\d{4,})
-			[ / : \\ \s ]
+			[ / : \\ \s \-]
 			(?<mon>0[1-9]|1[0-2])
-			[ / : \\ \s ]
+			[ / : \\ \s \-]
 			(?<day>[0-2][0-9]|3[01])
 			(?:
 			[ / : \\ \s ]
@@ -191,9 +177,9 @@ sub parse_date {
 		m{
 			^
 			(?<day>[0-2][0-9]|3[01])
-			[ / : \\ \s ]
+			[ / : \\ \s \-]
 			(?<mon>0[1-9]|1[0-2])
-			[ / : \\ \s ]
+			[ / : \\ \s \-]
 			(?<year>\d{4,})
 			(?:
 			[ / : \\ \s ]
