@@ -43,28 +43,10 @@ sub main {
 	(_usage() and exit) if $options{'help'};
 	(_tests() and exit) if $options{'test'};
 
-	my @f = grep { m/[\w\.\-\/]/ } @files;
-
-	foreach my $file (@f) {
-		open my $fh, "<", "$file" or croak "Couldn't open $file: $!";
-		binmode $fh, ':encoding(UTF-8)';
-
-		###
-		#
-		# Either make an iterator like this:
-			my $it = make_btail_iterator($fh, \%options);
-			my $line;
-			print $line while($line = $it->());
-		#
-		###
-		#
-		# Or just print file to STDOUT like this:
-			#my $range = get_range($fh, \%options);
-			#print_file($fh, $range);
-		#
-		###
-
-		close $fh;
+	foreach my $file (@files) {
+		my $it = make_btail_iterator($file, \%options);
+		my $line;
+		print $line while($line = $it->());
 	}
 }
 
@@ -148,8 +130,11 @@ sub print_file {
 }
 
 sub make_btail_iterator {
-	my $fh      = shift || croak "No filehandle";
+	my $file      = shift || croak "No filename";
 	my $options = shift || croak "No options struct";
+
+	open my $fh, "<", "$file" or croak "Couldn't open $file: $!";
+	binmode $fh, ':encoding(UTF-8)';
 
 	my $range = get_range($fh, \%options);
 
@@ -162,11 +147,13 @@ sub make_btail_iterator {
 
 	return sub {
 		((defined $$range{to} && tell($fh) > $$range{to}) || (defined $$range{lines} && $count++ >= $$range{lines}))
+			and close $fh
 			and return undef;
 
 		my $line = <$fh>;
 
-		return $line;
+		return $line if defined $line;
+		close $fh;
 	}
 }
 
@@ -183,7 +170,7 @@ sub get_range {
 	}
 
 	(!defined $range{from} || $range{from} < 0)
-		and croak "Start of range invalid";
+		and croak "Start of range invalid: before 0";
 
 	if ($$options{to_date}) {
 		$range{to} = bsearch_point($fh, parse_date($$options{to_date}));
@@ -196,7 +183,7 @@ sub get_range {
 	}
 
 	(defined $range{to} && $range{to} < $range{from})
-		and croak "End of range invalid";
+		and croak "End of range invalid: before start of range";
 
 	return \%range;
 }
