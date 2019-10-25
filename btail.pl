@@ -19,7 +19,6 @@ my %options = (
 	'to_date'   => '',
 	'days_ago'  => 0,
 	'days'      => 0,
-	'verbose'   => 0,
 	'help'      => 0,
 	'test'      => 0,
 );
@@ -30,7 +29,6 @@ GetOptions(
 	'to_date=s'   => \$options{'to_date'},
 	'days_ago=i'  => \$options{'days_ago'},
 	'days=i'      => \$options{'days'},
-	'verbose'     => \$options{'verbose'},
 	'help'        => \$options{'help'},
 	'test'        => \$options{'test'},
 ) or croak "Error in command line arguments";
@@ -270,7 +268,6 @@ End point for printing:
 --lines     Print maximum of n lines
 
 Other:
---verbose   More verbosity
 --help      Print this message
 --test      Run tests
 EOF
