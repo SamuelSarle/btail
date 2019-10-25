@@ -106,29 +106,6 @@ sub read_line {
 	return $line;
 }
 
-sub print_file {
-	my $fh    = shift || confess "No filehandle";
-	my $range = shift || confess "No range struct";
-
-	seek $fh, $$range{from}, SEEK_SET;
-
-	($$range{from} == 0)
-		or <$fh>; #fix cursor
-
-	my $line;
-	my $count = 0;
-	while($line = <$fh>) {
-		print $line;
-
-		if ($$range{to}) {
-			last if (tell($fh) > $$range{to});
-		} elsif ($$range{lines}) {
-			last if $count >= $$range{lines};
-			$count++;
-		}
-	}
-}
-
 sub make_btail_iterator {
 	my $file      = shift || croak "No filename";
 	my $options = shift || croak "No options struct";
