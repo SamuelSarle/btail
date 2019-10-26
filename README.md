@@ -1,7 +1,7 @@
 # Btail
 
 Tail logs from a point in time. To find where to start btail uses binary search.
-The end point can also be defined as a date. Alternatively you can get only n amount of lines using `--lines n`.
+The end point can also be defined as a date. Alternatively you can get only n amount of lines using `--lines n`. If both the end date and a maxium are defined btail will stop at whichever comes first.
 
 ## Use
 
