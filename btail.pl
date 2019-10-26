@@ -91,7 +91,7 @@ sub read_line {
 }
 
 sub make_btail_iterator {
-	my $file      = shift || croak "No filename";
+	my $file    = shift || croak "No filename";
 	my $options = shift || croak "No options struct";
 
 	open my $fh, "<", "$file" or croak "Couldn't open $file: $!";
@@ -251,7 +251,7 @@ Start point for printing:
 --days_ago  Define start as n days ago from today
 
 End point for printing:
---to_date   Define end of print as a date string
+--to_date   Define end as a date string
 --days      Days forward from start of print
 
 --lines     Print maximum of n lines
