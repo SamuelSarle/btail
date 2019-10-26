@@ -9,15 +9,15 @@ Example `btail --from_date 2019/08/04 test.log`
 
 #### CLI options
 
-Option | Description
---------------------
---from_date | Define start as a date string ()
---days_ago  | Define start as n days ago from today
---to_date | Define end as a date string
---days | Days forward from start of print
---lines | Print maximum of n lines
---help | Print help message
---test | Run tests
+| Option | Description |
+| ------- | ------------ |
+| --from_date | Define start as a date string () |
+| --days_ago  | Define start as n days ago from today |
+| --to_date | Define end as a date string |
+| --days | Days forward from start of print |
+| --lines | Print maximum of n lines |
+| --help | Print help message |
+| --test | Run tests |
 
 #### Supported date formats:
 
