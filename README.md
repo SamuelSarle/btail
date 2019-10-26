@@ -11,13 +11,13 @@ Example `btail --from_date 2019/08/04 test.log`
 
 Option | Description
 --------------------
---from_date| Define start as a date string ()
---days_ago | Define start as n days ago from today
---to_date  | Define end as a date string
---days     | Days forward from start of print
---lines    | Print maximum of n lines
---help     | Print help message
---test     | Run tests
+--from_date | Define start as a date string ()
+--days_ago  | Define start as n days ago from today
+--to_date | Define end as a date string
+--days | Days forward from start of print
+--lines | Print maximum of n lines
+--help | Print help message
+--test | Run tests
 
 #### Supported date formats:
 
