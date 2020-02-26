@@ -96,7 +96,7 @@ sub make_btail_iterator {
 	open my $fh, "<", "$file" or croak "Couldn't open $file: $!";
 	binmode $fh, ':encoding(UTF-8)';
 
-	my $range = get_range($fh, \%options);
+	my $range = get_range($fh, $options);
 
 	seek $fh, $$range{from}, SEEK_SET;
 
